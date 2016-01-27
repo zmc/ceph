@@ -76,7 +76,8 @@ libcommon_internal_la_SOURCES = \
 	common/ContextCompletion.cc \
 	common/TracepointProvider.cc \
 	common/PluginRegistry.cc \
-	common/scrub_types.cc
+	common/scrub_types.cc \
+	common/bit_str.cc
 
 common/PluginRegistry.cc: ./ceph_ver.h
 
@@ -285,6 +286,7 @@ noinst_HEADERS += \
 	common/ceph_time.h \
 	common/ceph_timer.h \
 	common/align.h \
+	common/bit_str.h \
 	common/mutex_debug.h \
 	common/shunique_lock.h
 

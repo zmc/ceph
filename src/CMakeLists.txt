@@ -320,6 +320,7 @@ set(libcommon_files
   common/TracepointProvider.cc
   common/Cycles.cc
   common/scrub_types.cc
+  common/bit_str.cc
   osdc/Striper.cc
   osdc/Objecter.cc
   common/Graylog.cc
