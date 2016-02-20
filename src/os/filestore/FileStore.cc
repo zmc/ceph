@@ -4322,7 +4322,7 @@ int FileStore::_rmattrs(const coll_t& cid, const ghobject_t& oid,
       get_attrname(p->first.c_str(), n, CHAIN_XATTR_MAX_NAME_LEN);
       r = chain_fremovexattr(**fd, n);
       if (r < 0)
-	break;
+	goto out_close;
     }
   }
 
