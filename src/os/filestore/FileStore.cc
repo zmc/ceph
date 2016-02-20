@@ -1730,9 +1730,11 @@ int FileStore::umount()
     journal_write_close();
 
   for (vector<Finisher*>::iterator it = ondisk_finishers.begin(); it != ondisk_finishers.end(); ++it) {
+    (*it)->wait_for_empty();
     (*it)->stop();
   }
   for (vector<Finisher*>::iterator it = apply_finishers.begin(); it != apply_finishers.end(); ++it) {
+    (*it)->wait_for_empty();
     (*it)->stop();
   }
 
