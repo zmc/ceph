@@ -295,7 +295,7 @@ load_from_buffer(const char *buf, size_t sz, std::deque<std::string> *errors,
   int line_no = 0;
   size_t line_len = -1;
   size_t rem = sz;
-  while (1) {
+  while (rem > line_len) {
     b += line_len + 1;
     rem -= line_len + 1;
     if (rem == 0)
