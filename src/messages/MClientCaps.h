@@ -112,6 +112,7 @@ class MClientCaps : public Message {
       truncate_size(0),
       truncate_seq(0),
       time_warp_seq(0),
+      inline_version(0),
       osd_epoch_barrier(0),
       oldest_flush_tid(0),
       caller_uid(0), caller_gid(0) {
@@ -133,6 +134,7 @@ class MClientCaps : public Message {
       truncate_size(0),
       truncate_seq(0),
       time_warp_seq(0),
+      inline_version(0),
       osd_epoch_barrier(oeb),
       oldest_flush_tid(0),
       caller_uid(0), caller_gid(0) {
@@ -158,6 +160,7 @@ class MClientCaps : public Message {
       truncate_size(0),
       truncate_seq(0),
       time_warp_seq(0),
+      inline_version(0),
       osd_epoch_barrier(oeb),
       oldest_flush_tid(0),
       caller_uid(0), caller_gid(0) {
