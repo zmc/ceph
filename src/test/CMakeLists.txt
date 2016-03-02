@@ -447,7 +447,10 @@ add_dependencies(check
   ceph_erasure_code_non_regression
   ceph_erasure_code
   ceph-disk
-  ceph-detect-init)
+  ceph-detect-init
+  cython_rados
+  cython_rbd
+  cython_cephfs)
 
 add_ceph_test(test-ceph-helpers.sh ${CMAKE_CURRENT_SOURCE_DIR}/test-ceph-helpers.sh)
 add_ceph_test(erasure-decode-non-regression.sh ${CMAKE_SOURCE_DIR}/qa/workunits/erasure-code/encode-decode-non-regression.sh)
@@ -476,9 +479,8 @@ set_property(TEST
   CEPH_BIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
   CEPH_LIB=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
   LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib
-  PATH=$ENV{PATH}:${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${CMAKE_SOURCE_DIR}/src
-  PYTHONPATH=${CMAKE_SOURCE_DIR}/src/pybind
-  )
+  PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:${CMAKE_SOURCE_DIR}/src:$ENV{PATH}
+  PYTHONPATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cython_modules/lib.linux-x86_64-2.7:${CMAKE_SOURCE_DIR}/src/pybind:${CMAKE_SOURCE_DIR}/src/pybind/rados)
 
 # unittest_admin_socket
 add_executable(unittest_admin_socket EXCLUDE_FROM_ALL
