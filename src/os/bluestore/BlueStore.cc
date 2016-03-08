@@ -6333,15 +6333,19 @@ int BlueStore::_rename(TransContext *txc,
   int r;
   ghobject_t old_oid = oldo->oid;
 
-  if (newo && newo->exists) {
-    // destination object already exists, remove it first
-    r = _do_remove(txc, c, newo);
-    if (r < 0)
-      goto out;
+  if (newo) {
+    if (newo->exists) {
+      // destination object already exists, remove it first
+      r = _do_remove(txc, c, newo);
+      if (r < 0)
+	goto out;
+    }
+    newo.reset(NULL);
   }
 
   txc->t->rmkey(PREFIX_OBJ, oldo->key);
   txc->write_onode(oldo);
+  oldo.reset(NULL);
   c->onode_map.rename(old_oid, new_oid);  // this adjusts oldo->{oid,key}
   r = 0;
 
