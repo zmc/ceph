@@ -202,12 +202,12 @@ public:
     int64_t mirror_tid = -1;
 
     std::set<cls::journal::Client>::const_iterator c;
-    for (c = registered_clients.begin(); c != registered_clients.end(); c++) {
+    for (c = registered_clients.begin(); c != registered_clients.end(); ++c) {
       std::cout << __func__ << ": client: " << *c << std::endl;
       cls::journal::ObjectPositions object_positions =
 	c->commit_position.object_positions;
       cls::journal::ObjectPositions::const_iterator p;
-      for (p = object_positions.begin(); p != object_positions.end(); p++) {
+      for (p = object_positions.begin(); p != object_positions.end(); ++p) {
 	if (c->id == master_client_id) {
 	  ASSERT_EQ(-1, master_tid);
 	  master_tid = p->entry_tid;
