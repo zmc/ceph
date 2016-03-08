@@ -173,6 +173,7 @@ set(auth_files
 set(mds_files)
 list(APPEND mds_files
   mds/MDSMap.cc
+  mds/FSMap.cc
   mds/inode_backtrace.cc
   mds/mdstypes.cc)
 
@@ -486,6 +487,7 @@ if (WITH_CEPHFS)
     tools/cephfs/EventOutput.cc
     tools/cephfs/Dumper.cc
     tools/cephfs/Resetter.cc
+    tools/cephfs/RoleSelector.cc
     tools/cephfs/MDSUtility.cc)
   add_executable(cephfs-journal-tool ${cephfs_journal_tool_srcs})
   target_link_libraries(cephfs-journal-tool librados mds osdc global
@@ -494,6 +496,7 @@ if (WITH_CEPHFS)
   set(cephfs_table_tool_srcs
     tools/cephfs/cephfs-table-tool.cc
     tools/cephfs/TableTool.cc
+    tools/cephfs/RoleSelector.cc
     tools/cephfs/MDSUtility.cc)
   add_executable(cephfs-table-tool ${cephfs_table_tool_srcs})
   target_link_libraries(cephfs-table-tool librados mds osdc global
@@ -502,6 +505,7 @@ if (WITH_CEPHFS)
   set(cephfs_data_scan_srcs
     tools/cephfs/cephfs-data-scan.cc
     tools/cephfs/DataScan.cc
+    tools/cephfs/RoleSelector.cc
     tools/cephfs/MDSUtility.cc)
   add_executable(cephfs-data-scan ${cephfs_data_scan_srcs})
   target_link_libraries(cephfs-data-scan librados mds osdc global
@@ -973,6 +977,18 @@ endif(${ENABLE_SHARED})
     set_target_properties(ceph-fuse PROPERTIES COMPILE_FLAGS "-I${FUSE_INCLUDE_DIRS}")
     install(TARGETS ceph-fuse DESTINATION bin)
   endif(HAVE_LIBFUSE)
+
+  if(JNI_FOUND)
+      set(libcephfs_jni_srcs
+        java/native/libcephfs_jni.cc
+        java/native/JniConstants.cpp)
+    add_library(cephfs_jni ${CEPH_SHARED} ${libcephfs_jni_srcs})
+      target_link_libraries(cephfs_jni cephfs)
+      target_include_directories(cephfs_jni PUBLIC "${JNI_INCLUDE_DIRS}")
+      set_target_properties(cephfs_jni PROPERTIES OUTPUT_NAME cephfs_jni VERSION 1.0.0
+        SOVERSION 1)
+      install(TARGETS cephfs_jni DESTINATION lib)
+  endif(JNI_FOUND)
 endif(WITH_LIBCEPHFS)
 
 set(journal_srcs
