@@ -4262,6 +4262,8 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
     Transaction::Op *op = i.decode_op();
     int r = 0;
 
+    dout(30) << __func__ << " txc onodes " << txc->onodes << dendl;
+
     // no coll or obj
     if (op->op == Transaction::OP_NOP)
       continue;
@@ -4371,6 +4373,7 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
 	  goto endop;
 	}
       }
+      dout(30) << __func__ << " ovec[" << op->oid << "] now " << o << dendl;
     }
 
     switch (op->op) {
