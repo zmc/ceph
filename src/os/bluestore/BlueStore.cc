@@ -6335,12 +6335,10 @@ int BlueStore::_rename(TransContext *txc,
 
   if (newo) {
     if (newo->exists) {
-      // destination object already exists, remove it first
-      r = _do_remove(txc, c, newo);
-      if (r < 0)
-	goto out;
+      r = -EEXIST;
+      goto out;
     }
-    txc->onodes.erase(newo);
+    assert(txc->onodes.count(newo) == 0);
     newo.reset(NULL);
   }
 
