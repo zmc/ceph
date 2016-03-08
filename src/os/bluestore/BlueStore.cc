@@ -6340,6 +6340,7 @@ int BlueStore::_rename(TransContext *txc,
       if (r < 0)
 	goto out;
     }
+    txc->onodes.erase(newo);
     newo.reset(NULL);
   }
 
