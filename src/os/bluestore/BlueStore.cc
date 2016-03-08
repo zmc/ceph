@@ -4489,7 +4489,6 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
 	const ghobject_t& noid = i.get_oid(op->dest_oid);
 	OnodeRef no = c->get_onode(noid, false);
 	r = _rename(txc, c, o, no, noid);
-	o.reset();
       }
       break;
 
@@ -4500,7 +4499,6 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
 	r = _rename(txc, c, o, no, noid);
 	if (r == -ENOENT)
 	  r = 0;
-	o.reset();
       }
       break;
 
