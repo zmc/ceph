@@ -1332,7 +1332,6 @@ int FileStore::mount()
 
   ret = read_superblock();
   if (ret < 0) {
-    ret = -EINVAL;
     goto close_fsid_fd;
   }
 
@@ -1730,9 +1729,11 @@ int FileStore::umount()
     journal_write_close();
 
   for (vector<Finisher*>::iterator it = ondisk_finishers.begin(); it != ondisk_finishers.end(); ++it) {
+    (*it)->wait_for_empty();
     (*it)->stop();
   }
   for (vector<Finisher*>::iterator it = apply_finishers.begin(); it != apply_finishers.end(); ++it) {
+    (*it)->wait_for_empty();
     (*it)->stop();
   }
 
@@ -2988,7 +2989,7 @@ int FileStore::read(
   if (m_filestore_sloppy_crc && (!replaying || backend->can_checkpoint())) {
     ostringstream ss;
     int errors = backend->_crc_verify_read(**fd, offset, got, bl, &ss);
-    if (errors > 0) {
+    if (errors != 0) {
       dout(0) << "FileStore::read " << cid << "/" << oid << " " << offset << "~"
 	      << got << " ... BAD CRC:\n" << ss.str() << dendl;
       assert(0 == "bad crc on read");
@@ -3373,6 +3374,7 @@ int FileStore::_do_sparse_copy_range(int from, int to, uint64_t srcoff, uint64_t
   dout(20) << __func__ << " " << srcoff << "~" << len << " to " << dstoff << dendl;
   int r = 0;
   map<uint64_t, uint64_t> exomap;
+  int64_t written = 0;
   // fiemap doesn't allow zero length
   if (len == 0)
     return 0;
@@ -3385,7 +3387,9 @@ int FileStore::_do_sparse_copy_range(int from, int to, uint64_t srcoff, uint64_t
     r = _do_fiemap(from, srcoff, len, &exomap);
   }
 
-  int64_t written = 0;
+  if (r < 0)
+    goto out;
+
   for (map<uint64_t, uint64_t>::iterator miter = exomap.begin(); miter != exomap.end(); ++miter) {
     uint64_t it_off = miter->first - srcoff + dstoff;
     r = _do_copy_range(from, to, miter->first, miter->second, it_off, true);
@@ -3903,7 +3907,6 @@ int FileStore::snapshot(const string& name)
 
   int r = backend->create_checkpoint(s, NULL);
   if (r) {
-    r = -errno;
     derr << "snapshot " << name << " failed: " << cpp_strerror(r) << dendl;
   }
 
@@ -4119,7 +4122,6 @@ int FileStore::getattrs(const coll_t& _cid, const ghobject_t& oid, map<string,bu
   if (r < 0) {
     goto out;
   }
-  lfn_close(fd);
 
   if (!spill_out) {
     dout(10) << __func__ << " no xattr exists in object_map r = " << r << dendl;
@@ -4341,7 +4343,7 @@ int FileStore::_rmattrs(const coll_t& cid, const ghobject_t& oid,
       get_attrname(p->first.c_str(), n, CHAIN_XATTR_MAX_NAME_LEN);
       r = chain_fremovexattr(**fd, n);
       if (r < 0)
-	break;
+	goto out_close;
     }
   }
 
@@ -5023,18 +5025,13 @@ int FileStore::_destroy_collection(const coll_t& c)
     goto out;
   }
 
- out:
-  // destroy parallel temp collection, too
+  // On success, destroy parallel temp collection too, if there is any.
   if (!c.is_meta() && !c.is_temp()) {
     coll_t temp = c.get_temp();
-    int r2 = _destroy_collection(temp);
-    if (r2 < 0) {
-      r = r2;
-      goto out_final;
-    }
+    r = _destroy_collection(temp);
   }
 
- out_final:
+ out:
   dout(10) << "_destroy_collection " << fn << " = " << r << dendl;
   return r;
 }
