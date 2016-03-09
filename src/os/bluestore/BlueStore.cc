@@ -4263,6 +4263,7 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
     int r = 0;
 
     dout(30) << __func__ << " txc onodes " << txc->onodes << dendl;
+    dout(30) << __func__ << " ovec " << ovec << dendl;
 
     // no coll or obj
     if (op->op == Transaction::OP_NOP)
@@ -4495,6 +4496,9 @@ void BlueStore::_txc_add_transaction(TransContext *txc, Transaction *t)
 	r = _rename(txc, c, o, no, noid);
 	if (r == -ENOENT && op->op == Transaction::OP_TRY_RENAME)
 	  r = 0;
+	dout(30) << __func__ << " post-rename ovec " << ovec << dendl;
+	o.reset(NULL);
+	dout(30) << __func__ << " post-rename ovec2 " << ovec << dendl;
       }
       break;
 
