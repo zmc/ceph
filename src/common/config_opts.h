@@ -282,6 +282,8 @@ OPTION(mon_daemon_bytes, OPT_U64, 400ul << 20)  // mds, osd message memory cap (
 OPTION(mon_max_log_entries_per_event, OPT_INT, 4096)
 OPTION(mon_reweight_min_pgs_per_osd, OPT_U64, 10)   // min pgs per osd for reweight-by-pg command
 OPTION(mon_reweight_min_bytes_per_osd, OPT_U64, 100*1024*1024)   // min bytes per osd for reweight-by-utilization command
+OPTION(mon_reweight_max_osds, OPT_INT, 4)   // max osds to change per reweight-by-* command
+OPTION(mon_reweight_max_change, OPT_DOUBLE, 0.05)
 OPTION(mon_health_data_update_interval, OPT_FLOAT, 60.0)
 OPTION(mon_health_to_clog, OPT_BOOL, true)
 OPTION(mon_health_to_clog_interval, OPT_INT, 3600)
@@ -974,6 +976,9 @@ OPTION(filestore_wbthrottle_xfs_inodes_start_flusher, OPT_U64, 500)
 /// These must be less than the fd limit
 OPTION(filestore_wbthrottle_btrfs_inodes_hard_limit, OPT_U64, 5000)
 OPTION(filestore_wbthrottle_xfs_inodes_hard_limit, OPT_U64, 5000)
+
+//Introduce a O_DSYNC write in the filestore
+OPTION(filestore_odsync_write, OPT_BOOL, false)
 
 // Tests index failure paths
 OPTION(filestore_index_retry_probability, OPT_DOUBLE, 0)
