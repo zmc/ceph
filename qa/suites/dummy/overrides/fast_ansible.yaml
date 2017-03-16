@@ -1,0 +1,4 @@
+overrides:
+  ansible.cephlab:
+    # Run as little of ansible.cephlab as possible
+    tags: always
