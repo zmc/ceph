@@ -754,6 +754,9 @@ def cluster(ctx, config):
                         mnt_point,
                     ]
                 )
+                remote.run(args=[
+                    'sudo', 'chown', '-R', 'ceph:ceph', mnt_point
+                ])
                 remote.run(
                     args=[
                         'sudo', '/sbin/restorecon', mnt_point,
