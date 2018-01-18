@@ -1,4 +1,49 @@
+import json
 import math
+import os
+
+METRICS_CONF = './metrics.json'
+
+
+def get_metrics_spec():
+    """
+    Load the metrics configuration, and build a spec representing the set of
+    metrics we'll use.
+
+    The filename is stored in METRICS_CONF, defaulting to './metrics.json'
+    """
+    spec_path = METRICS_CONF
+    if not spec_path.startswith('/'):
+        spec_path = os.path.normpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                METRICS_CONF
+            ))
+    metrics_spec = json.loads(open(spec_path).read())
+    for name, group in metrics_spec['groups'].items():
+        templates = group.pop('templates', dict())
+        defaults = group.pop('defaults', dict())
+        for name, item in group.get('metrics', dict()).items():
+            apply_defaults(defaults, item)
+            apply_templates(templates, name, item)
+            if 'name' not in item:
+                item['name'] = name
+    return metrics_spec
+
+
+def apply_defaults(defaults, item):
+    for name, value in defaults.items():
+        if name not in item:
+            item[name] = value
+    return item
+
+
+def apply_templates(templates, item_name, item):
+    for name, value in templates.items():
+        new_value = value.format(item_name)
+        if name not in item:
+            item[name] = new_value
+    return item
 
 
 class Metric(object):

@@ -1,0 +1,74 @@
+{"groups": {
+  "pg_states": {
+    "defaults": {"type": "gauge"},
+    "templates": {"name": "pg_{}", "desc": "PG {}"},
+    "metrics": {
+      "creating": {},
+      "active": {},
+      "clean": {},
+      "down": {},
+      "scrubbing": {},
+      "deep": {},
+      "degraded": {},
+      "inconsistent": {},
+      "peering": {},
+      "repair": {},
+      "recovering": {},
+      "forced-recovery": {},
+      "backfill": {},
+      "forced-backfill": {},
+      "wait-backfill": {},
+      "backfill-toofull": {},
+      "incomplete": {},
+      "stale": {},
+      "remapped": {},
+      "undersized": {},
+      "peered": {}
+    }
+  },
+  "df_cluster": {
+    "defaults": {"type": "gauge"},
+    "templates": {"name": "cluster_{}", "desc": "DF {}"},
+    "metrics": {
+      "total_bytes": {},
+      "total_used_bytes": {},
+      "total_objects": {}
+    }
+  },
+  "df_pool": {
+    "defaults": {"type": "gauge", "labels": ["pool_id"]},
+    "templates": {"name": "pool_{}", "desc": "DF Pool {}"},
+    "metrics": {
+      "max_avail": {},
+      "bytes_used": {},
+      "raw_bytes_used": {},
+      "objects": {},
+      "dirty": {},
+      "quota_bytes": {},
+      "quota_objects": {},
+      "rd": {},
+      "rd_bytes": {},
+      "wr": {},
+      "wr_bytes": {}
+    }
+  },
+  "osd_status": {
+    "defaults": {"type": "untyped", "labels": ["ceph_daemon"]},
+    "templates": {"name": "osd_{}", "desc": "OSD Status {}"},
+    "metrics": {
+      "weight": {},
+      "up": {},
+      "in": {}
+    }
+  },
+  "metadata": {
+    "defaults": {"type": "untyped"},
+    "metrics": {
+      "disk_occupation": {"desc": "Associate Ceph daemon with disk used", "labels": ["instance", "device", "ceph_daemon"]},
+      "health_status": {"desc": "Cluster health status"},
+      "mon_quorum_count": {"desc": "Monitors in quorum", "type": "gauge"},
+      "osd_metadata": {"desc": "OSD Metadata", "labels": ["cluster_addr", "device_class", "id", "public_addr"]},
+      "pool_metadata": {"desc": "POOL Metadata", "labels": ["pool_id", "name"]}
+    }
+  }
+}}
