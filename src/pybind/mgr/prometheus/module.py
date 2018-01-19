@@ -71,6 +71,19 @@ class Module(MgrModule):
             return 'histogram'
         return ''
 
+    def _debug_raw(self):
+        self.log.debug('debug start')
+        try:
+            #self.log.debug("health: {}".format(self.get('health')))
+            #self.log.debug("df: {}".format(self.get('df')))
+            #self.log.debug("mon_status: {}".format(self.get('mon_status')))
+            self.log.debug("pg_summary: {}".format(str(self.get('pg_summary'))))
+            #self.log.debug("osd_map: {}".format(self.get('osd_map')))
+            #self.log.debug(
+            #    "osd_map_crush: {}".format(self.get('osd_map_crush')))
+        except Exception:
+            self.log.debug("oops")
+
     def _setup_static_metrics(self, metrics_spec):
         metrics = dict()
         for group_name, group in metrics_spec['groups'].items():
@@ -247,6 +260,20 @@ class Module(MgrModule):
                 cherrypy.response.headers['Content-Type'] = 'text/plain'
                 if metrics:
                     return self.format_metrics(metrics)
+
+            @cherrypy.expose
+            def debug_metrics(self):
+                things = [
+                    'health', 'df', 'mon_status', 'pg_summary', 'osd_map',
+                    'osd_map_crush'
+                ]
+                out_dict = dict()
+                obj = global_instance()
+                obj.log.debug("debug start")
+                for thing in things:
+                    out_dict[thing] = obj.get(thing)
+                out_dict['all_perf_counters'] = obj.get_all_perf_counters()
+                return json.dumps(out_dict)
 
         server_addr = self.get_localized_config('server_addr', DEFAULT_ADDR)
         server_port = self.get_localized_config('server_port', DEFAULT_PORT)
