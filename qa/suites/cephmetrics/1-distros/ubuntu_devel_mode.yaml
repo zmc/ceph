@@ -1,0 +1,7 @@
+os_type: ubuntu
+os_version: "16.04"
+overrides:
+  cephmetrics:
+    group_vars:
+      all:
+        devel_mode: true

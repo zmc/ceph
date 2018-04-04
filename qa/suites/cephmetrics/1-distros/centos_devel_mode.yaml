@@ -1,0 +1,7 @@
+os_type: centos
+os_version: "7.4"
+overrides:
+  cephmetrics:
+    group_vars:
+      all:
+        devel_mode: true
