@@ -4,6 +4,9 @@ overrides:
   cephmetrics:
     group_vars:
       all:
+        backend:
+          metrics: mgr
+          storage: prometheus
         prometheus:
           containerized: false
         grafana:

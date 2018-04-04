@@ -1,0 +1,9 @@
+meta:
+  - desc: "collectd + cephmetrics collectors"
+overrides:
+  cephmetrics:
+    group_vars:
+      all:
+        backend:
+          metrics: cephmetrics
+          storage: graphite
