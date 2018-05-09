@@ -7,3 +7,4 @@ overrides:
         backend:
           metrics: cephmetrics
           storage: graphite
+        containerized: false

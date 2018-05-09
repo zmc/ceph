@@ -7,7 +7,4 @@ overrides:
         backend:
           metrics: mgr
           storage: prometheus
-        prometheus:
-          containerized: true
-        grafana:
-          containerized: true
+        containerized: true
