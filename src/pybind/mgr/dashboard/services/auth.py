@@ -33,6 +33,9 @@ class AuthManagerTool(cherrypy.Tool):
 
     def _check_authentication(self):
         username = cherrypy.session.get(Session.USERNAME)
+        logger.warn("AMT request: %s %s", cherrypy.request.method, cherrypy.url(relative='server'))
+        logger.warn("AMT request: %s", cherrypy.request.config)
+        logger.warn("AMT session: %s", dict(cherrypy.session))
         if not username:
             logger.debug('Unauthorized access to %s',
                          cherrypy.url(relative='server'))
