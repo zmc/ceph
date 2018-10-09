@@ -131,6 +131,15 @@ class CherryPyConfig(object):
         self.log.info('server_addr: %s server_port: %s', server_addr,
                       server_port)
 
+        # Redirect cherrypy logs
+        cherrypy.log.screen = False
+        def replace_handlers(cherrypy_logger):
+            for old_handler in cherrypy_logger.handlers:
+                self.log.info("Removing handler %s from logger %s", old_handler, cherrypy_logger)
+                cherrypy_logger.removeHandler(old_handler)
+            cherrypy_logger.addHandler(logger)
+        map(replace_handlers, [cherrypy.log.access_log, cherrypy.log.error_log])
+
         # Initialize custom handlers.
         cherrypy.tools.authenticate = AuthManagerTool()
         cherrypy.tools.session_expire_at_browser_close = SessionExpireAtBrowserCloseTool()
