@@ -5,6 +5,9 @@ ceph dashboard module
 """
 from __future__ import absolute_import
 
+import manhole
+manhole.install()
+
 import os
 
 
