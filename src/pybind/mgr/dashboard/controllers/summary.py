@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import json
 
 
-from . import ApiController, Endpoint, BaseController
+from . import ApiController, Endpoint, BaseController, InsecureException
 from .. import mgr
 from ..security import Permission, Scope
 from ..controllers.rbd_mirroring import get_daemons_and_pools
@@ -12,7 +12,7 @@ from ..exceptions import ViewCacheNoDataException
 from ..tools import TaskManager
 
 
-@ApiController('/summary')
+@ApiController('/summary', secure=False)
 class Summary(BaseController):
     def _health_status(self):
         health_data = mgr.get("health")
@@ -52,6 +52,9 @@ class Summary(BaseController):
             'finished_tasks': finished_t,
             'version': mgr.version
         }
-        if self._has_permissions(Permission.READ, Scope.RBD_MIRRORING):
-            result['rbd_mirroring'] = self._rbd_mirroring()
+        try:
+            if self._has_permissions(Permission.READ, Scope.RBD_MIRRORING):
+                result['rbd_mirroring'] = self._rbd_mirroring()
+        except InsecureException:
+            pass
         return result
