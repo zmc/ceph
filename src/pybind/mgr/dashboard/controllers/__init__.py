@@ -29,6 +29,10 @@ from ..services.exception import serialize_dashboard_exception
 from ..services.auth import AuthManager
 
 
+class InsecureException(Exception):
+    pass
+
+
 class Controller(object):
     def __init__(self, path, base_url=None, security_scope=None, secure=True):
         if security_scope and not Scope.valid_scope(security_scope):
@@ -471,7 +475,7 @@ class BaseController(object):
 
     def _has_permissions(self, permissions, scope=None):
         if not self._cp_config['tools.authenticate.on']:
-            raise Exception("Cannot verify permission in non secured "
+            raise InsecureException("Cannot verify permission in non secured "
                             "controllers")
 
         if not isinstance(permissions, list):
