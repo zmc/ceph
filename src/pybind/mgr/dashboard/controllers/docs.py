@@ -9,7 +9,7 @@ from . import Controller, BaseController, Endpoint, ENDPOINT_MAP
 from .. import logger, mgr
 
 
-@Controller('/docs')
+@Controller('/docs', secure=False)
 class Docs(BaseController):
 
     @classmethod
