@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import json
 import re
-
 
 from . import ApiController, BaseController, Endpoint
 from .. import mgr
@@ -19,6 +17,7 @@ class Public(BaseController):
             raw_version,
         ).groups()
         return dict(
+            raw=raw_version,
             number=parsed_version[0],
             hash=parsed_version[1],
             name=parsed_version[2],
