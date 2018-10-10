@@ -5,13 +5,13 @@ import json
 import re
 
 
-from . import ApiController, BaseController, RESTController
+from . import ApiController, BaseController, Endpoint
 from .. import mgr
 
 
 @ApiController('/public', secure=False)
 class Public(BaseController):
-    @RESTController.Resource('GET')
+    @Endpoint('GET')
     def version(self):
         raw_version = mgr.version
         parsed_version = re.match(
