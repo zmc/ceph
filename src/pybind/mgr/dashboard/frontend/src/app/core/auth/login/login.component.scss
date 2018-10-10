@@ -13,6 +13,11 @@
     margin-bottom: 30px;
   }
 
+  h1.version {
+    font-size: 12px;
+    font-weight: normal;
+  }
+
   .btn-password,
   .form-control {
     color: $color-password-toggle-text;
