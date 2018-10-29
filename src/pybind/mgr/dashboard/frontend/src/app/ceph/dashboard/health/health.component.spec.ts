@@ -7,7 +7,8 @@ import { PopoverModule } from 'ngx-bootstrap/popover';
 import { of } from 'rxjs';
 
 import { configureTestBed, i18nProviders } from '../../../../testing/unit-test-helper';
-import { DashboardService } from '../../../shared/api/dashboard.service';
+import { HealthService } from '../../../shared/api/health.service';
+import { LogsService } from '../../../shared/api/logs.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { LogColorPipe } from '../log-color.pipe';
 import { MdsSummaryPipe } from '../mds-summary.pipe';
@@ -22,6 +23,7 @@ describe('HealthComponent', () => {
   let component: HealthComponent;
   let fixture: ComponentFixture<HealthComponent>;
   let getHealthSpy;
+  let getLogsSpy;
   const healthPayload = {
     health: { status: 'HEALTH_OK' },
     mon_status: { monmap: { mons: [] }, quorum: [] },
@@ -36,6 +38,10 @@ describe('HealthComponent', () => {
     pools: [],
     df: { stats: { total_objects: 0 } },
     pg_info: {}
+  };
+  const logsPayload = {
+    audit_log: [],
+    clog: []
   };
 
   configureTestBed({
@@ -57,7 +63,8 @@ describe('HealthComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(HealthComponent);
     component = fixture.componentInstance;
-    getHealthSpy = spyOn(TestBed.get(DashboardService), 'getHealth');
+    getHealthSpy = spyOn(TestBed.get(HealthService), 'getMinimalHealth');
+    getLogsSpy = spyOn(TestBed.get(LogsService), 'getLogs');
   });
 
   it('should create', () => {
@@ -66,6 +73,7 @@ describe('HealthComponent', () => {
 
   it('should render all info groups and all info cards', () => {
     getHealthSpy.and.returnValue(of(healthPayload));
+    getLogsSpy.and.returnValue(of(null));
     fixture.detectChanges();
 
     const infoGroups = fixture.debugElement.nativeElement.querySelectorAll('cd-info-group');
@@ -87,6 +95,7 @@ describe('HealthComponent', () => {
     payload.iscsi_daemons = null;
 
     getHealthSpy.and.returnValue(of(payload));
+    getLogsSpy.and.returnValue(of(null));
     fixture.detectChanges();
 
     const infoGroups = fixture.debugElement.nativeElement.querySelectorAll('cd-info-group');
@@ -102,6 +111,7 @@ describe('HealthComponent', () => {
     payload.client_perf = null;
 
     getHealthSpy.and.returnValue(of(payload));
+    getLogsSpy.and.returnValue(of(null));
     fixture.detectChanges();
 
     const infoGroups = fixture.debugElement.nativeElement.querySelectorAll('cd-info-group');
@@ -118,6 +128,7 @@ describe('HealthComponent', () => {
     payload.pg_info = null;
 
     getHealthSpy.and.returnValue(of(payload));
+    getLogsSpy.and.returnValue(of(null));
     fixture.detectChanges();
 
     const infoGroups = fixture.debugElement.nativeElement.querySelectorAll('cd-info-group');
@@ -131,6 +142,7 @@ describe('HealthComponent', () => {
     const payload = { hosts: 0, scrub_status: 'Inactive', pools: [] };
 
     getHealthSpy.and.returnValue(of(payload));
+    getLogsSpy.and.returnValue(of(null));
     fixture.detectChanges();
 
     const infoGroups = fixture.debugElement.nativeElement.querySelectorAll('cd-info-group');
