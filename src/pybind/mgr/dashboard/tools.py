@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import sys
 import inspect
 import json
+import msgpack
 import functools
 
 import collections
@@ -772,3 +773,28 @@ def get_request_body_params(request):
         params.update(request.json.items())
 
     return params
+
+
+def msgpack_processor(entity):
+    if not entity.headers.get('Content-Length', ''):
+        raise cherrypy.HTTPError(411)
+
+    body = entity.fp.read()
+    with cherrypy.HTTPError.handle(
+            ValueError, 400, 'Invalid MsgPack document'):
+        cherrypy.serving.request.json = msgpack.unpackb(body.decode('utf-8'))
+
+
+def msgpack_in(
+        content_type=['application/x-msgpack', 'application/msgpack'],
+        force=False, debug=False, processor=msgpack_processor):
+    request = cherrypy.serving.request
+
+    if not type(content_type) in [tuple, list]:
+        content_type = [content_type]
+
+    for ct in content_type:
+        request.body.processors[ct] = processor
+
+
+MsgPackInTool = cherrypy.Tool('before_request_body', msgpack_in, priority=30)

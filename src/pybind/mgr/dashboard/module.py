@@ -56,7 +56,7 @@ if 'COVERAGE_ENABLED' in os.environ:
 from . import logger, mgr
 from .controllers import generate_routes, json_error_page
 from .tools import NotificationQueue, RequestLoggingTool, TaskManager, \
-                   prepare_url_prefix
+                   prepare_url_prefix, MsgPackInTool
 from .services.auth import AuthManager, AuthManagerTool, JwtManager
 from .services.access_control import ACCESS_CONTROL_COMMANDS, \
                                      handle_access_control_command
@@ -121,11 +121,14 @@ class CherryPyConfig(object):
         self.log.info('server_addr: %s server_port: %s', server_addr,
                       server_port)
 
+        msgpack = strtobool(self.get_localized_config('msgpack', 'True'))
+
         # Initialize custom handlers.
         cherrypy.tools.authenticate = AuthManagerTool()
         cherrypy.tools.request_logging = RequestLoggingTool()
         cherrypy.tools.dashboard_exception_handler = HandlerWrapperTool(dashboard_exception_handler,
                                                                         priority=31)
+        cherrypy.tools.msgpack_in = MsgPackInTool
 
         # Apply the 'global' CherryPy configuration.
         config = {
@@ -141,10 +144,17 @@ class CherryPyConfig(object):
                 # We also want JSON and JavaScript to be compressed
                 'application/json',
                 'application/javascript',
+                # And MsgPack!
+                'application/msgpack'
             ],
+        }
+        config.update({'dashboard.msgpack': msgpack})
+        if msgpack:
+            config.update({'tools.msgpack_in.on': True})
+        config.update({
             'tools.json_in.on': True,
             'tools.json_in.force': False
-        }
+        })
 
         if ssl:
             # SSL initialization
@@ -248,7 +258,8 @@ class Module(MgrModule, CherryPyConfig):
         {'name': 'username'},
         {'name': 'key_file'},
         {'name': 'crt_file'},
-        {'name': 'ssl'}
+        {'name': 'ssl'},
+        {'name': 'msgpack'}
     ]
     OPTIONS.extend(options_schema_list())
 

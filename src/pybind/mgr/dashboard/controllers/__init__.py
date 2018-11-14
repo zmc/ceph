@@ -6,6 +6,7 @@ import collections
 import importlib
 import inspect
 import json
+import msgpack
 import os
 import pkgutil
 import sys
@@ -539,8 +540,13 @@ class BaseController(object):
                 cherrypy.response.headers['Content-Type'] = 'application/xml'
                 return ret.encode('utf8')
             if json_response:
-                cherrypy.response.headers['Content-Type'] = 'application/json'
-                ret = json.dumps(ret).encode('utf8')
+                if cherrypy.config.get('dashboard.msgpack', False):
+                    content_type = 'application/msgpack'
+                    ret = msgpack.packb(ret)
+                else:
+                    content_type = 'application/json'
+                    ret = json.dumps(ret).encode('utf8')
+                cherrypy.response.headers['Content-Type'] = content_type
             return ret
         return inner
 
