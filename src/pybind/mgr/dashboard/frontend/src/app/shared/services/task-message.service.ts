@@ -121,6 +121,11 @@ export class TaskMessageService {
       })
   };
 
+  grafana = {
+    update_dashboards: (metadata) =>
+      this.i18n('all dashboards')
+  };
+
   messages = {
     // Pool tasks
     'pool/create': this.newTaskMessage(
@@ -328,6 +333,12 @@ export class TaskMessageService {
     'nfs/edit': this.newTaskMessage(this.commonOperations.update, (metadata) => this.nfs(metadata)),
     'nfs/delete': this.newTaskMessage(this.commonOperations.delete, (metadata) =>
       this.nfs(metadata)
+    ),
+    // Grafana tasks
+    'grafana/update_dashboards': this.newTaskMessage(
+      this.commonOperations.update,
+      this.grafana.update_dashboards,
+      (metadata) => ({})
     )
   };
 

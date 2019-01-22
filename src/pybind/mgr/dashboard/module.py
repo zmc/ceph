@@ -56,6 +56,7 @@ if 'COVERAGE_ENABLED' in os.environ:
 # pylint: disable=wrong-import-position
 from . import logger, mgr
 from .controllers import generate_routes, json_error_page
+from .grafana import push_local_dashboards
 from .tools import NotificationQueue, RequestLoggingTool, TaskManager, \
                    prepare_url_prefix
 from .services.auth import AuthManager, AuthManagerTool, JwtManager
@@ -241,6 +242,11 @@ class Module(MgrModule, CherryPyConfig):
             "desc": "Create self signed certificate",
             "perm": "w"
         },
+        {
+            "cmd": "dashboard update-grafana-dashboards",
+            "desc": "Push dashboards to Grafana",
+            "perm": "w",
+        },
     ]
     COMMANDS.extend(options_command_list())
     COMMANDS.extend(SSO_COMMANDS)
@@ -328,6 +334,13 @@ class Module(MgrModule, CherryPyConfig):
         NotificationQueue.start_queue()
         TaskManager.init()
         logger.info('Engine started.')
+        logger.info('Starting Grafana dashboard task')
+        TaskManager.run(
+            'grafana/update_dashboards',
+            {},
+            push_local_dashboards,
+            kwargs=dict(tries=10, sleep=60),
+        )
         # wait for the shutdown event
         self.shutdown_event.wait()
         self.shutdown_event.clear()
@@ -361,6 +374,9 @@ class Module(MgrModule, CherryPyConfig):
         if cmd['prefix'] == 'dashboard create-self-signed-cert':
             self.create_self_signed_cert()
             return 0, 'Self-signed certificate created', ''
+        if cmd['prefix'] == 'dashboard update-grafana-dashboards':
+            push_local_dashboards()
+            return 0, 'Grafana dashboards updated', ''
 
         return (-errno.EINVAL, '', 'Command not found \'{0}\''
                 .format(cmd['prefix']))
