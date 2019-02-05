@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import json
 import requests
 import os
+import time
 
 from . import (ApiController, BaseController, Endpoint, ReadPermission,
                UpdatePermission)
@@ -70,19 +71,48 @@ def load_local_dashboards():
     return dashboards
 
 
-def push_local_dashboards():
+class Retrier(object):
+    def __init__(self, tries, sleep, func, *args, **kwargs):
+        assert tries >= 1
+        self.tries = int(tries)
+        self.tried = 0
+        self.sleep = sleep
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self):
+        result = None
+        while self.tried < self.tries:
+            try:
+                result = self.func(*self.args, **self.kwargs)
+            except Exception:
+                if self.tried == self.tries - 1:
+                    raise
+                else:
+                    self.tried += 1
+                    time.sleep(self.sleep)
+            else:
+                return result
+
+
+def push_local_dashboards(tries=1, sleep=600):
     try:
         dashboards = load_local_dashboards()
     except Exception:
         logger.exception("Failed to load local dashboard files")
         raise
-    try:
-        grafana = GrafanaRestClient()
-        for name, body in dashboards.items():
-            grafana.push_dashboard(body)
-    except Exception:
-        logger.exception("Failed to push dashboards to Grafana")
-        raise
+
+    def push():
+        try:
+            grafana = GrafanaRestClient()
+            for name, body in dashboards.items():
+                grafana.push_dashboard(body)
+        except Exception:
+            logger.exception("Failed to push dashboards to Grafana")
+            raise
+    retry = Retrier(tries, sleep, push)
+    retry()
     return True
 
 
