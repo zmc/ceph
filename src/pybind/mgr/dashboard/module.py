@@ -324,7 +324,7 @@ class Module(MgrModule, CherryPyConfig):
             'grafana/update_dashboards',
             {},
             push_local_dashboards,
-            kwargs=dict(tries=10, sleep=300),
+            kwargs=dict(tries=10, sleep=60),
         )
         # wait for the shutdown event
         self.shutdown_event.wait()
