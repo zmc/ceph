@@ -30,7 +30,7 @@ class Grafana(BaseController):
 
     @Endpoint(method='POST')
     @UpdatePermission
-    def update_dashboards(self):
+    def dashboards(self):
         response = dict()
         try:
             response['success'] = push_local_dashboards()

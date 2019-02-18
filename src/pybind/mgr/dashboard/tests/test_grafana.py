@@ -38,13 +38,13 @@ class GrafanaTest(ControllerTestCase):
         self._get('/api/grafana/validation/foo')
         self.assertStatus(500)
 
-    def test_update_dashboards(self):
+    def test_dashboards(self):
         self.server_settings(url=None)
-        self._post('/api/grafana/update_dashboards')
+        self._post('/api/grafana/dashboards')
         self.assertStatus(500)
         self.server_settings(user=None)
-        self._post('/api/grafana/update_dashboards')
+        self._post('/api/grafana/dashboards')
         self.assertStatus(500)
         self.server_settings(password=None)
-        self._post('/api/grafana/update_dashboards')
+        self._post('/api/grafana/dashboards')
         self.assertStatus(500)

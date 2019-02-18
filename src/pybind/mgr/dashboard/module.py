@@ -243,7 +243,7 @@ class Module(MgrModule, CherryPyConfig):
             "perm": "w"
         },
         {
-            "cmd": "dashboard update-grafana-dashboards",
+            "cmd": "dashboard grafana dashboards update",
             "desc": "Push dashboards to Grafana",
             "perm": "w",
         },
@@ -336,7 +336,7 @@ class Module(MgrModule, CherryPyConfig):
         logger.info('Engine started.')
         logger.info('Starting Grafana dashboard task')
         TaskManager.run(
-            'grafana/update_dashboards',
+            'grafana/dashboards/update',
             {},
             push_local_dashboards,
             kwargs=dict(tries=10, sleep=60),
@@ -374,7 +374,7 @@ class Module(MgrModule, CherryPyConfig):
         if cmd['prefix'] == 'dashboard create-self-signed-cert':
             self.create_self_signed_cert()
             return 0, 'Self-signed certificate created', ''
-        if cmd['prefix'] == 'dashboard update-grafana-dashboards':
+        if cmd['prefix'] == 'dashboard grafana dashboards update':
             push_local_dashboards()
             return 0, 'Grafana dashboards updated', ''
 

@@ -335,7 +335,7 @@ export class TaskMessageService {
       this.nfs(metadata)
     ),
     // Grafana tasks
-    'grafana/update_dashboards': this.newTaskMessage(
+    'grafana/dashboards/update': this.newTaskMessage(
       this.commonOperations.update,
       this.grafana.update_dashboards,
       (metadata) => ({})
