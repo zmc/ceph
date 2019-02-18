@@ -13,14 +13,16 @@ from .settings import Settings
 
 class GrafanaRestClient(object):
 
-    def url_validation(self, method, path):
+    @staticmethod
+    def url_validation(method, path):
         response = requests.request(
             method,
             path)
 
         return response.status_code
 
-    def push_dashboard(self, dashboard_obj):
+    @staticmethod
+    def push_dashboard(dashboard_obj):
         if not Settings.GRAFANA_API_URL:
             raise GrafanaError("The Grafana API URL is not set!")
         if not Settings.GRAFANA_API_URL.startswith('http'):
