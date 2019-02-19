@@ -98,7 +98,7 @@ def load_local_dashboards():
 def push_local_dashboards(tries=1, sleep=0):
     try:
         dashboards = load_local_dashboards()
-    except Exception:
+    except (EnvironmentError, ValueError):
         logger.exception("Failed to load local dashboard files")
         raise
 
