@@ -14,7 +14,9 @@ from util import (
     get_boxes_container_info,
     run_cephadm_shell_command,
     run_dc_shell_command,
+    run_dc_shell_commands,
     run_shell_command,
+    run_shell_commands,
 )
 
 CEPH_IMAGE = 'quay.ceph.io/ceph-ci/ceph:master'
@@ -40,7 +42,7 @@ def image_exists(image_name: str):
     # extract_tag
     assert image_name.find(':')
     image_name, tag = image_name.split(':')
-    images = run_shell_command('docker image ls').split('\n')
+    images = run_shell_command('podman image ls').split('\n')
     IMAGE_NAME = 0
     TAG = 1
     for image in images:
@@ -54,21 +56,21 @@ def image_exists(image_name: str):
 
 def get_ceph_image():
     print('Getting ceph image')
-    run_shell_command(f'docker pull {CEPH_IMAGE}')
+    run_shell_command(f'podman pull {CEPH_IMAGE}')
     # update
-    run_shell_command(f'docker build -t {CEPH_IMAGE} docker/ceph')
+    run_shell_command(f'podman build -t {CEPH_IMAGE} docker/ceph')
     if not os.path.exists('docker/ceph/image'):
         os.mkdir('docker/ceph/image')
 
     remove_ceph_image_tar()
 
-    run_shell_command(f'docker save {CEPH_IMAGE} -o {CEPH_IMAGE_TAR}')
+    run_shell_command(f'podman save {CEPH_IMAGE} -o {CEPH_IMAGE_TAR}')
     print('Ceph image added')
 
 
 def get_box_image():
     print('Getting box image')
-    run_shell_command('docker build -t cephadm-box -f Dockerfile .')
+    run_shell_command('podman build -t cephadm-box -f Dockerfile .')
     print('Box image added')
 
 
@@ -82,7 +84,7 @@ class Cluster(Target):
         )
         self.parser.add_argument('--osds', type=int, default=3, help='Number of osds')
 
-        self.parser.add_argument('--hosts', type=int, default=2, help='Number of hosts')
+        self.parser.add_argument('--hosts', type=int, default=1, help='Number of hosts')
         self.parser.add_argument('--skip-deploy-osds', action='store_true', help='skip deploy osd')
         self.parser.add_argument('--skip-create-loop', action='store_true', help='skip create loopback device')
         self.parser.add_argument('--skip-monitoring-stack', action='store_true', help='skip monitoring stack')
@@ -91,6 +93,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
+        run_shell_command('sudo pip3 install podman-compose')
         get_ceph_image()
         get_box_image()
 
@@ -103,14 +106,17 @@ class Cluster(Target):
         print('Running bootstrap on seed')
         cephadm_path = os.environ.get('CEPHADM_PATH')
         os.symlink('/cephadm/cephadm', cephadm_path)
-        run_shell_command(
-            'systemctl restart docker'
-        )  # restart to ensure docker is using daemon.json
+
+
+        # restart to ensure docker is using daemon.json
+        # run_shell_command(
+        #     'systemctl restart docker'
+        # )
 
         st = os.stat(cephadm_path)
         os.chmod(cephadm_path, st.st_mode | stat.S_IEXEC)
 
-        run_shell_command('docker load < /cephadm/box/docker/ceph/image/quay.ceph.image.tar')
+        run_shell_command('podman load < /cephadm/box/docker/ceph/image/quay.ceph.image.tar')
         # cephadm guid error because it sometimes tries to use quay.ceph.io/ceph-ci/ceph:<none>
         # instead of master's tag
         run_shell_command('export CEPH_SOURCE_FOLDER=/ceph')
@@ -178,7 +184,16 @@ class Cluster(Target):
         hosts = Config.get('hosts')
 
         # ensure boxes don't exist
-        run_shell_command('docker-compose down')
+        run_shell_command('podman-compose down')
+        I_am = run_shell_command('whoami')
+        if 'root' in I_am:
+            msg = """
+            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+            sudo with this script can kill your computer, try again without sudo
+            if you value your time.
+            """
+            print(msg)
+            sys.exit(1)
 
         print('Checking docker images')
         if not image_exists(CEPH_IMAGE):
@@ -186,24 +201,47 @@ class Cluster(Target):
         if not image_exists(BOX_IMAGE):
             get_box_image()
 
+        used_loop = ""
         if not Config.get('skip_create_loop'):
             print('Adding logical volumes (block devices) in loopback device...')
-            osd.create_loopback_devices(osds)
+            used_loop = osd.create_loopback_devices(osds)
             print(f'Added {osds} logical volumes in a loopback device')
+        loop_device_arg = ""
+        if used_loop:
+            loop_device_arg = f'--device {used_loop} -v /dev/vg1:/dev/vg1:Z'
+            for o in range(osds):
+                loop_device_arg += f' --device /dev/dm-{o}'
+
+            
 
         print('Starting containers')
 
         dcflags = '-f docker-compose.yml'
         if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
             dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'docker-compose {dcflags} up --scale hosts={hosts} -d')
+        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --network=host --device /dev/fuse --device /dev/tty1 --device /dev/console {loop_device_arg}" up --scale hosts={hosts} -d')
+        ip = run_dc_shell_command('hostname -i', 1, 'seed')
+        assert ip != '127.0.0.1'
 
         run_shell_command('sudo sysctl net.ipv4.conf.all.forwarding=1')
         run_shell_command('sudo iptables -P FORWARD ACCEPT')
 
+        # don't update clock with chronyd / setup chronyd on all boxes
+        chronyd_setup = """
+        sed 's/$OPTIONS/-x/g' /usr/lib/systemd/system/chronyd.service -i
+        systemctl daemon-reload
+        systemctl start chronyd
+        systemctl status chronyd
+        """
+        for h in range(hosts):
+            run_dc_shell_commands(h + 1, 'hosts', chronyd_setup)
+        run_dc_shell_commands(1, 'seed', chronyd_setup)
+
         print('Seting up host ssh servers')
         for h in range(hosts):
-            host._setup_ssh(h + 1)
+            host._setup_ssh('hosts', h + 1)
+
+        host._setup_ssh('seed', 1)
 
         verbose = '-v' if Config.get('verbose') else ''
         skip_deploy = '--skip-deploy-osds' if Config.get('skip-deploy-osds') else ''
@@ -240,7 +278,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def down(self):
-        run_shell_command('docker-compose down')
+        run_shell_command('podman-compose down')
         cleanup_box()
         print('Successfully killed all boxes')
 
@@ -258,7 +296,7 @@ class Cluster(Target):
         # we need verbose to see the prompt after running shell command
         Config.set('verbose', True)
         print('Seed bash')
-        run_shell_command('docker-compose exec seed bash')
+        run_shell_command('podman-compose exec seed bash')
 
 
 targets = {

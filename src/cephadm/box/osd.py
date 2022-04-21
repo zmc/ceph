@@ -21,7 +21,7 @@ def remove_loop_img() -> None:
         os.remove(loop_image)
 
 
-@ensure_outside_container
+
 def create_loopback_devices(osds: int) -> None:
     assert osds
     size = (5 * osds) + 1
@@ -61,6 +61,7 @@ def create_loopback_devices(osds: int) -> None:
     for i in range(osds):
         run_shell_command('sudo vgchange --refresh')
         run_shell_command(f'sudo lvcreate -l {p}%VG --name lv{i} vg1')
+    return avail_loop
 
 
 def get_lvm_osd_data(data: str) -> Dict[str, str]:
