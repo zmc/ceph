@@ -13,18 +13,17 @@ services:
       - NET_ADMIN
       - SYS_TIME
       - SYS_RAWIO
-      - MKNOD
+      - mknod
       - NET_RAW
     stop_signal: RTMIN+3
     volumes:
-      - ../../../:/ceph
-      - ..:/cephadm
+      - ../../../:/ceph:z
+      - ..:/cephadm:z
       # - ./daemon.json:/etc/docker/daemon.json
       # dangerous, maybe just map the loopback
       # https://stackoverflow.com/questions/36880565/why-dont-my-udev-rules-work-inside-of-a-running-docker-container
       - /run/udev:/run/udev
       - /dev/fuse:/dev/fuse
-      # - /dev:/dev
     mem_limit: "20g"
     scale: -1
   seed:
