@@ -40,8 +40,10 @@ RUN dnf -y install hostname iproute udev
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 
 RUN useradd podman; \
-echo podman:10000:5000 > /etc/subuid; \
-echo podman:10000:5000 > /etc/subgid;
+echo podman:0:5000 > /etc/subuid; \
+echo podman:0:5000 > /etc/subgid; \
+echo root:0:65534 > /etc/subuid; \
+echo root:0:65534 > /etc/subgid;
 
 VOLUME /home/podman/.local/share/containers
 

@@ -17,6 +17,8 @@ from util import (
     run_dc_shell_commands,
     run_shell_command,
     run_shell_commands,
+    colored,
+    Colors
 )
 
 CEPH_IMAGE = 'quay.ceph.io/ceph-ci/ceph:master'
@@ -26,7 +28,8 @@ BOX_IMAGE = 'cephadm-box:latest'
 # we deploy a cluster. Keep in mind that you'll be responsible of pulling the
 # image yourself with `box cluster setup`
 CEPH_IMAGE_TAR = 'docker/ceph/image/quay.ceph.image.tar'
-
+CEPH_ROOT = '../../../'
+DASHBOARD_PATH = '../../../src/pybind/mgr/dashboard/frontend/'
 
 def remove_ceph_image_tar():
     if os.path.exists(CEPH_IMAGE_TAR):
@@ -73,6 +76,20 @@ def get_box_image():
     run_shell_command('podman build -t cephadm-box -f Dockerfile .')
     print('Box image added')
 
+def check_dashboard():
+    if not os.path.exists(os.path.join(CEPH_root, 'dist')):
+        print(colored('Missing build in dashboard', Colors.WARNING))
+
+def check_cgroups():
+    cgroup2_on = run_shell_command('grep cgroup2 /proc/filesystems')
+    if not cgroup2_on:
+        print(colored('cgroups v1 is not fully supported', Colors.WARNING))
+
+def check_selinux():
+    selinux = run_shell_command('getenforce')
+    if 'Disabled' not in selinux:
+        print(colored('selinux should be disabled, run: sudo setenforce 0', Colors.WARNING))
+
 
 class Cluster(Target):
     _help = 'Manage docker cephadm boxes'
@@ -93,7 +110,11 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
-        run_shell_command('sudo pip3 install podman-compose')
+        run_shell_command('pip3 install https://github.com/containers/podman-compose/archive/devel.tar.gz')
+
+        check_cgroups()
+        check_selinux()
+
         get_ceph_image()
         get_box_image()
 
@@ -180,6 +201,8 @@ class Cluster(Target):
 
     @ensure_outside_container
     def start(self):
+        check_cgroups()
+        check_selinux()
         osds = Config.get('osds')
         hosts = Config.get('hosts')
 
