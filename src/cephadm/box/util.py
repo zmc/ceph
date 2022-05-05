@@ -151,10 +151,10 @@ def run_cephadm_shell_command(command: str, expect_error=False) -> str:
 def run_dc_shell_command(
     command: str, index: int, box_type: str, expect_error=False
 ) -> str:
-    container_id = get_container_id(f'{box_type}_{index}')
-    print(container_id)
+    container_name = f'box_{box_type}_{index}'
+    print(container_name)
     out = run_shell_command(
-        f'podman exec -it {container_id} {command}', expect_error
+        f'podman exec -it {container_name} {command}', expect_error
     )
     return out
 
