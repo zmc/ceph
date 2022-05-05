@@ -103,7 +103,6 @@ class Cluster(Target):
             'action', choices=Cluster.actions, help='Action to perform on the box'
         )
         self.parser.add_argument('--osds', type=int, default=3, help='Number of osds')
-
         self.parser.add_argument('--hosts', type=int, default=1, help='Number of hosts')
         self.parser.add_argument('--skip-deploy-osds', action='store_true', help='skip deploy osd')
         self.parser.add_argument('--skip-create-loop', action='store_true', help='skip create loopback device')
@@ -145,6 +144,9 @@ class Cluster(Target):
         run_shell_command('export CEPHADM_IMAGE=quay.ceph.io/ceph-ci/ceph:main')
         run_shell_command(
             'echo "export CEPHADM_IMAGE=quay.ceph.io/ceph-ci/ceph:main" >> ~/.bashrc'
+        )
+        run_shell_command(
+            'echo "export CEPH_VOLUME_ALLOW_LOOP_DEVICES=1" >> ~/.bashrc'
         )
 
         extra_args = []
@@ -226,10 +228,8 @@ class Cluster(Target):
             get_box_image()
 
         if not Config.get('skip_create_loop'):
-            print('Adding logical volumes (block devices) in loopback device...')
-            osd.create_scsi_devices(osds)
-            print(f'Added {osds} logical volumes in a loopback device')
-
+            print("Creating OSD devices...")
+            osd.create_loopback_devices(osds)
             
         print('Starting containers')
         init_containers.InitContainers.start()
@@ -285,14 +285,13 @@ class Cluster(Target):
 
         if expanded and not Config.get('skip-deploy-osds'):
             print('Deploying osds... This could take up to minutes')
-            osd.deploy_osds_in_vg('vg1')
+            osd.deploy_osds(osds)
             print('Osds deployed')
 
         print('Bootstrap finished successfully')
 
     @ensure_outside_container
     def down(self):
-        run_shell_command('docker-compose down')
         cleanup_box()
         print('Successfully killed all boxes')
 
