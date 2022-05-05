@@ -111,7 +111,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
-        run_shell_command('pip3 install https://github.com/containers/podman-compose/archive/devel.tar.gz')
+        run_shell_command('pip3 install --user https://github.com/zmc/podman-compose/archive/install-reqs-version.tar.gz')
 
         check_cgroups()
         check_selinux()
