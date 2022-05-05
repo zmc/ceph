@@ -81,9 +81,10 @@ def check_dashboard():
         print(colored('Missing build in dashboard', Colors.WARNING))
 
 def check_cgroups():
-    cgroup2_on = run_shell_command('grep cgroup2 /proc/filesystems')
-    if not cgroup2_on:
-        print(colored('cgroups v1 is not fully supported', Colors.WARNING))
+    if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
+        print(colored('cgroups v1 is not supported', Colors.FAIL))
+        print('Enable cgroups v2 please')
+        sys.exit(666)
 
 def check_selinux():
     selinux = run_shell_command('getenforce')
@@ -209,14 +210,14 @@ class Cluster(Target):
         # ensure boxes don't exist
         run_shell_command('podman-compose down')
         I_am = run_shell_command('whoami')
-        if 'root' in I_am:
-            msg = """
-            WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
-            sudo with this script can kill your computer, try again without sudo
-            if you value your time.
-            """
-            print(msg)
-            sys.exit(1)
+        # if 'root' in I_am:
+        #     msg = """
+        #     WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING 
+        #     sudo with this script can kill your computer, try again without sudo
+        #     if you value your time.
+        #     """
+        #     print(msg)
+        #     sys.exit(1)
 
         print('Checking docker images')
         if not image_exists(CEPH_IMAGE):
@@ -242,7 +243,7 @@ class Cluster(Target):
         dcflags = '-f docker-compose.yml'
         if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
             dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --network=host --device /dev/fuse --device /dev/tty1 --device /dev/console {loop_device_arg}" up --scale hosts={hosts} -d')
+        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --network=host --device /dev/fuse -it {loop_device_arg}" up --scale hosts={hosts} -d')
         ip = run_dc_shell_command('hostname -i', 1, 'seed')
         assert ip != '127.0.0.1'
 

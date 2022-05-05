@@ -188,6 +188,12 @@ def get_boxes_container_info(with_seed: bool = False) -> Dict[str, Any]:
 
 
 def get_orch_hosts():
-    orch_host_ls_out = run_cephadm_shell_command('ceph orch host ls --format json')
+    if inside_container():
+        orch_host_ls_out = run_cephadm_shell_command('ceph orch host ls --format json')
+    else:
+        orch_host_ls_out = run_dc_shell_command('cephadm shell --keyring /etc/ceph/ceph.keyring --config /etc/ceph/ceph.conf -- ceph orch host ls --format json', 1, 'seed')
+        sp = orch_host_ls_out.split('\n')
+        orch_host_ls_out  = sp[len(sp) - 1]
+        print('xd', orch_host_ls_out)
     hosts = json.loads(orch_host_ls_out)
     return hosts
