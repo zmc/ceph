@@ -1,9 +1,10 @@
-#!/bin/python3
+#!/usr/bin/env python3
 import argparse
 import os
 import stat
 import sys
 
+import init_containers
 import host
 import osd
 from util import (
@@ -38,6 +39,7 @@ def remove_ceph_image_tar():
 
 def cleanup_box() -> None:
     osd.cleanup()
+    init_containers.InitContainers.stop()
     remove_ceph_image_tar()
 
 
@@ -111,8 +113,6 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
-        run_shell_command('pip3 install https://github.com/containers/podman-compose/archive/devel.tar.gz')
-
         check_cgroups()
         check_selinux()
 
@@ -208,7 +208,7 @@ class Cluster(Target):
         hosts = Config.get('hosts')
 
         # ensure boxes don't exist
-        run_shell_command('podman-compose down')
+        init_containers.InitContainers.stop()
         I_am = run_shell_command('whoami')
         # if 'root' in I_am:
         #     msg = """
@@ -225,25 +225,15 @@ class Cluster(Target):
         if not image_exists(BOX_IMAGE):
             get_box_image()
 
-        used_loop = ""
         if not Config.get('skip_create_loop'):
             print('Adding logical volumes (block devices) in loopback device...')
-            used_loop = osd.create_loopback_devices(osds)
+            osd.create_scsi_devices(osds)
             print(f'Added {osds} logical volumes in a loopback device')
-        loop_device_arg = ""
-        if used_loop:
-            loop_device_arg = f'--device {used_loop} -v /dev/vg1:/dev/vg1:Z'
-            for o in range(osds):
-                loop_device_arg += f' --device /dev/dm-{o}'
 
             
-
         print('Starting containers')
+        init_containers.InitContainers.start()
 
-        dcflags = '-f docker-compose.yml'
-        if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
-            dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --network=host --device /dev/fuse -it {loop_device_arg}" up --scale hosts={hosts} -d')
         ip = run_dc_shell_command('hostname -i', 1, 'seed')
         assert ip != '127.0.0.1'
 
@@ -302,7 +292,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def down(self):
-        run_shell_command('podman-compose down')
+        run_shell_command('docker-compose down')
         cleanup_box()
         print('Successfully killed all boxes')
 
@@ -319,11 +309,13 @@ class Cluster(Target):
     def sh(self):
         # we need verbose to see the prompt after running shell command
         Config.set('verbose', True)
-        print('Seed bash')
-        run_shell_command('podman-compose exec seed bash')
+        name = init_containers.InitContainers.get_name("seed", 1)
+        print(f"Starting shell on {name}")
+        run_shell_command(f"podman exec -it {name} bash")
 
 
 targets = {
+    'initcontainers': init_containers.InitContainers,
     'cluster': Cluster,
     'osd': osd.Osd,
     'host': host.Host,
