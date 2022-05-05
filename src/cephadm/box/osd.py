@@ -38,10 +38,12 @@ def create_loopback_devices(osds: int) -> None:
     if os.path.ismount(loop_dev):
         os.umount(loop_dev)
 
-    loop_devices = json.loads(run_shell_command('losetup -l -J', expect_error=True))
-    for dev in loop_devices['loopdevices']:
-        if dev['name'] == loop_dev:
-            run_shell_command(f'sudo losetup -d {loop_dev}')
+    loop_devices_str = run_shell_command('losetup -l -J', expect_error=True)
+    if loop_devices_str:
+        loop_devices = json.loads(loop_devices_str)
+        for dev in loop_devices['loopdevices']:
+            if dev['name'] == loop_dev:
+                run_shell_command(f'sudo losetup -d {loop_dev}')
 
     if not os.path.exists('./loop-images'):
         os.mkdir('loop-images')
