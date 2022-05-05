@@ -13,7 +13,7 @@ ENV CEPHADM_PATH=/usr/local/sbin/cephadm
 # directories used by yum that are just taking
 # up space.
 RUN dnf -y update; rpm --restore shadow-utils 2>/dev/null; \
-yum -y install podman fuse-overlayfs --exclude container-selinux; \
+yum -y install strace podman fuse-overlayfs --exclude container-selinux; \
 rm -rf /var/cache /var/log/dnf* /var/log/yum.*
 
 RUN dnf install which firewalld chrony procps systemd openssh openssh-server openssh-clients sshpass lvm2 -y
@@ -42,8 +42,15 @@ ENV _CONTAINERS_USERNS_CONFIGURED=""
 RUN useradd podman; \
 echo podman:0:5000 > /etc/subuid; \
 echo podman:0:5000 > /etc/subgid; \
-echo root:0:65534 > /etc/subuid; \
-echo root:0:65534 > /etc/subgid;
+echo root:0:65535 > /etc/subuid; \
+echo root:0:65535 > /etc/subgid;
+
+# FIXME: This a try to make a user that has sudo permission (in host not only in containers)
+# Doesn't work :)
+RUN useradd ultron; \
+echo ultron:0:1 > /etc/subuid; \
+echo ultron:0:1 > /etc/subgid;
+
 
 VOLUME /home/podman/.local/share/containers
 
@@ -53,6 +60,7 @@ ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanima
 RUN chown podman:podman -R /home/podman
 
 RUN echo 'podman:podman' | chpasswd
+RUN echo 'ultron:' | chpasswd
 RUN touch /.box_container # empty file to check if inside a container
 
 EXPOSE 8443
