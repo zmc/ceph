@@ -232,7 +232,7 @@ class Cluster(Target):
             print(f'Added {osds} logical volumes in a loopback device')
         loop_device_arg = ""
         if used_loop:
-            loop_device_arg = f'--device {used_loop} -v /dev/vg1:/dev/vg1:Z'
+            loop_device_arg = f'--device {used_loop} -v /dev/vg1:/dev/vg1'
             for o in range(osds):
                 loop_device_arg += f' --device /dev/dm-{o}'
 
