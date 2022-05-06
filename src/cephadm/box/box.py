@@ -243,7 +243,7 @@ class Cluster(Target):
         dcflags = '-f docker-compose.yml'
         if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
             dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --network=host --device /dev/fuse -it {loop_device_arg}" up --scale hosts={hosts} -d')
+        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --device /dev/fuse -it {loop_device_arg}" up --scale hosts={hosts} -d')
         ip = run_dc_shell_command('hostname -i', 1, 'seed')
         assert ip != '127.0.0.1'
 
