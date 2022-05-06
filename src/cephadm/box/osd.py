@@ -51,6 +51,7 @@ def create_loopback_devices(osds: int) -> None:
     remove_loop_img()
 
     loop_image = Config.get('loop_img')
+    run_shell_command(f'touch {loop_image}')
     run_shell_command(f'sudo dd if=/dev/zero of={loop_image} bs=1 count=0 seek={size}G')
     run_shell_command(f'sudo losetup {loop_dev} {loop_image}')
 
