@@ -111,7 +111,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
-        run_shell_command('pip3 install --user https://github.com/zmc/podman-compose/archive/install-reqs-version.tar.gz')
+        run_shell_command('pip3 install --user docker-compose')
 
         check_cgroups()
         check_selinux()
@@ -208,7 +208,7 @@ class Cluster(Target):
         hosts = Config.get('hosts')
 
         # ensure boxes don't exist
-        run_shell_command('podman-compose down')
+        run_shell_command('docker-compose down')
         I_am = run_shell_command('whoami')
         # if 'root' in I_am:
         #     msg = """
@@ -243,7 +243,7 @@ class Cluster(Target):
         dcflags = '-f docker-compose.yml'
         if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
             dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'podman-compose --podman-run-args "--group-add keep-groups --device /dev/fuse -it {loop_device_arg}" up --scale hosts={hosts} -d')
+        run_shell_command(f'docker-compose up --scale hosts={hosts} -d')
         ip = run_dc_shell_command('hostname -i', 1, 'seed')
         assert ip != '127.0.0.1'
 
@@ -302,7 +302,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def down(self):
-        run_shell_command('podman-compose down')
+        run_shell_command('docker-compose down')
         cleanup_box()
         print('Successfully killed all boxes')
 
@@ -320,7 +320,7 @@ class Cluster(Target):
         # we need verbose to see the prompt after running shell command
         Config.set('verbose', True)
         print('Seed bash')
-        run_shell_command('podman-compose exec seed bash')
+        run_shell_command('docker-compose exec seed bash')
 
 
 targets = {
