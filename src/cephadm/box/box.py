@@ -295,7 +295,7 @@ class Cluster(Target):
 
         if expanded and not Config.get('skip-deploy-osds'):
             print('Deploying osds... This could take up to minutes')
-            osd.deploy_osds_in_vg('vg1')
+            osd.deploy_osds(osds)
             print('Osds deployed')
 
         print('Bootstrap finished successfully')

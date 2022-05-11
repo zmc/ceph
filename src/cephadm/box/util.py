@@ -22,6 +22,7 @@ class Config:
         'config': '/etc/ceph/ceph.conf',
         'keyring': '/etc/ceph/ceph.keyring',
         'loop_img': 'loop-images/loop.img',
+        'loop_img_dir': 'loop-images',
     }
 
     @staticmethod

@@ -32,8 +32,10 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup
       - /dev/fuse:/dev/fuse
       - /dev/disk:/dev/disk
-      - /dev/mapper:/dev/mapper
-      - /dev/mapper/control:/dev/mapper/control
+    devices:
+      - /dev/loop0
+      - /dev/loop1
+      - /dev/loop2
     mem_limit: "20g"
     scale: -1
   seed:

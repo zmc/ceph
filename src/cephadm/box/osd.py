@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import Dict
 
 from util import (
@@ -15,74 +16,35 @@ from util import (
 )
 
 
-def remove_loop_img() -> None:
-    loop_image = Config.get('loop_img')
-    if os.path.exists(loop_image):
-        os.remove(loop_image)
-
-
-
-def create_loopback_devices(osds: int) -> None:
-
+def create_loopback_devices(osds: int) -> Dict:
     assert osds
-    size = (5 * osds) + 1
-    print(f'Using {size}GB of data to store osds')
-    # loop_dev = run_shell_command('sudo losetup -f')
-    loop_dev = '/dev/loop111'
-    run_shell_command(f'sudo rm -f {loop_dev}')
-    run_shell_command(f'sudo mknod -m 0777 {loop_dev} b 7 111')
-
-    # cleanup last call
     cleanup()
+    osd_devs = dict()
+    for i in range(osds):
+        img_name = f'osd{i}'
+        loop_dev = create_loopback_device(img_name)
+        osd_devs[i] = dict(img_name=img_name, device=loop_dev)
+    metadata_path = os.path.join(Config.get('loop_img_dir'), 'devs.json')
+    print("md path {metadata_path}")
+    with open(metadata_path, 'w') as metadata_file:
+        metadata_file.write(json.dumps(osd_devs))
+    return osd_devs
 
+
+def create_loopback_device(img_name, size_gb=5):
+    loop_img_dir = Config.get('loop_img_dir')
+    run_shell_command(f'mkdir -p {loop_img_dir}')
+    loop_img = os.path.join(loop_img_dir, img_name)
+    run_shell_command(f'rm -f {loop_img}')
+    run_shell_command(f'dd if=/dev/zero of={loop_img} bs=1 count=0 seek={size_gb}G')
+    loop_dev = run_shell_command(f'sudo losetup -f')
+    if not os.path.exists(loop_dev):
+        dev_minor = re.match(r'\/dev\/[^\d]+(\d+)', loop_dev).groups()[0]
+        run_shell_command(f'sudo mknod -m777 {loop_dev} b 7 {dev_minor}')
     if os.path.ismount(loop_dev):
         os.umount(loop_dev)
-
-    loop_devices_str = run_shell_command('losetup -l -J', expect_error=True)
-    if loop_devices_str:
-        loop_devices = json.loads(loop_devices_str)
-        for dev in loop_devices['loopdevices']:
-            if dev['name'] == loop_dev:
-                run_shell_command(f'sudo losetup -d {loop_dev}')
-
-    if not os.path.exists('./loop-images'):
-        os.mkdir('loop-images')
-
-    remove_loop_img()
-
-    loop_image = Config.get('loop_img')
-    run_shell_command(f'touch {loop_image}')
-    run_shell_command(f'sudo dd if=/dev/zero of={loop_image} bs=1 count=0 seek={size}G')
-    run_shell_command(f'sudo losetup {loop_dev} {loop_image}')
-
-
-    run_shell_command(f'sudo pvcreate {loop_dev} ')
-    run_shell_command(f'sudo vgcreate vg1 {loop_dev}')
-
-    p = int(100 / osds) # FIXME: 100 osds is the maximum because of lvcreate pct (it doesn't seem to work with lots more decimals)
-    for i in range(osds):
-        run_shell_command('sudo vgchange --refresh')
-        run_shell_command(f'sudo lvcreate -l {p}%VG --name lv{i} vg1')
-
-    # FIXME: use /dev/vg1/lv* links as it is less hacky (there could be unrelated dm devices)
-    run_shell_command(f'sudo chmod 777 /dev/dm-*')
+    run_shell_command(f'sudo losetup {loop_dev} {loop_img}')
     return loop_dev
-
-
-def get_lvm_osd_data(data: str) -> Dict[str, str]:
-    osd_lvm_info = run_cephadm_shell_command(f'ceph-volume lvm list {data}')
-    osd_data = {}
-    for line in osd_lvm_info.split('\n'):
-        line = line.strip()
-        if not line:
-            continue
-        line = line.split()
-        if line[0].startswith('===') or line[0].startswith('[block]'):
-            continue
-        # "block device" key -> "block_device"
-        key = '_'.join(line[:-1])
-        osd_data[key] = line[-1]
-    return osd_data
 
 
 @ensure_inside_container
@@ -91,47 +53,45 @@ def deploy_osd(data: str, hostname: str) -> bool:
     return 'Created osd(s)' in out
 
 
+def load_loop_devs():
+    metadata_path = os.path.join(Config.get('loop_img_dir'), 'devs.json')
+    if not os.path.exists(metadata_path):
+        return dict()
+    with open(metadata_path) as metadata_file:
+        loop_devs = json.loads(metadata_file.read())
+    return loop_devs
+
+
 def cleanup() -> None:
-    vg = 'vg1'
-    pvs = json.loads(run_shell_command('sudo pvs --reportformat json'))
-    for pv in pvs['report'][0]['pv']:
-        if pv['vg_name'] == vg:
-            device = pv['pv_name']
-            run_shell_command(f'sudo vgremove -f --yes {vg}')
-            run_shell_command(f'sudo losetup -d {device}')
-            run_shell_command(f'sudo wipefs -af {device}')
-            # FIX: this can fail with excluded filter
-            run_shell_command(f'sudo pvremove -f --yes {device}', expect_error=True)
-            break
-
-    remove_loop_img()
+    loop_img_dir = Config.get('loop_img_dir')
+    loop_devs = load_loop_devs()
+    for osd in loop_devs.values():
+        device = osd['device']
+        loop_img = os.path.join(loop_img_dir, osd['img_name'])
+        run_shell_command(f'sudo losetup -d {device}')
+        os.remove(loop_img)
+    run_shell_command(f'rm -rf {loop_img_dir}')
 
 
-def deploy_osds_in_vg(vg: str):
-    """
-    rotate host will deploy each osd in a different host
-
-    deploying osds will not succeed with starting services so this
-    makes another process to run on the background
-    """
+def deploy_osds(count):
     if inside_container():
         print('xd')
-    else:
-        lvs = json.loads(run_shell_command('sudo lvs --reportformat json'))
-        # distribute osds per host
-        hosts = get_orch_hosts()
-        host_index = 0
-        verbose = '-v' if Config.get('verbose') else ''
-        for lv in lvs['report'][0]['lv']:
-            if lv['vg_name'] == vg:
-                deployed = False
-                while not deployed:
-                    hostname = hosts[host_index]['hostname']
-                    deployed = run_dc_shell_command(
-                        f'/cephadm/box/box.py -v osd deploy --data /dev/{vg}/{lv["lv_name"]} --hostname {hostname}', 1, 'seed'
-                    )
-                    deployed = 'created osd' in deployed.lower() 
-                host_index = (host_index + 1) % len(hosts)
+        return
+    loop_devs = load_loop_devs()
+    hosts = get_orch_hosts()
+    host_index = 0
+    v = '-v' if Config.get('verbose') else ''
+    for osd in loop_devs.values():
+        deployed = False
+        while not deployed:
+            hostname = hosts[host_index]['hostname']
+            deployed = run_dc_shell_command(
+                f'/cephadm/box/box.py {v} osd deploy --data {osd["device"]} --hostname {hostname}',
+                1,
+                'seed'
+            )
+            deployed = 'created osd' in deployed.lower()
+        host_index = (host_index + 1) % len(hosts)
 
 
 class Osd(Target):
@@ -156,17 +116,17 @@ class Osd(Target):
     def deploy(self):
         data = Config.get('data')
         hostname = Config.get('hostname')
-        vg = Config.get('vg')
         if not hostname:
             # assume this host
             hostname = run_shell_command('hostname')
-        if vg:
-            deploy_osds_in_vg(vg)
+        if not data:
+            deploy_osds(Config.get('osds'))
         else:
             deploy_osd(data, hostname)
+
 
     @ensure_outside_container
     def create_loop(self):
         osds = Config.get('osds')
-        create_loopback_devices(osds)
+        create_loopback_devices(int(osds))
         print('Successfully added logical volumes in loopback devices')
