@@ -6,7 +6,7 @@
 # This image can be used to create a secured container
 # that runs safely with privileges within the container.
 #
-FROM fedora:34
+FROM fedora:35
 
 ENV CEPHADM_PATH=/usr/local/sbin/cephadm
 # Don't include container-selinux and remove
