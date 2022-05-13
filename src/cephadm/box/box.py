@@ -38,6 +38,9 @@ def remove_ceph_image_tar():
 
 def cleanup_box() -> None:
     osd.cleanup()
+    run_shell_command('podman container rm -f seed', expect_error=True)
+    run_shell_command('podman container rm -f hosts', expect_error=True)
+    run_shell_command("podman network rm -f box", expect_error=True)
     remove_ceph_image_tar()
 
 
@@ -111,8 +114,6 @@ class Cluster(Target):
 
     @ensure_outside_container
     def setup(self):
-        run_shell_command('pip3 install --user docker-compose')
-
         check_cgroups()
         check_selinux()
 
@@ -208,7 +209,9 @@ class Cluster(Target):
         hosts = Config.get('hosts')
 
         # ensure boxes don't exist
-        run_shell_command('docker-compose down')
+        run_shell_command('podman container rm -f seed', expect_error=True)
+        run_shell_command('podman container rm -f hosts', expect_error=True)
+        run_shell_command("podman network rm -f box", expect_error=True)
         I_am = run_shell_command('whoami')
         # if 'root' in I_am:
         #     msg = """
@@ -225,25 +228,17 @@ class Cluster(Target):
         if not image_exists(BOX_IMAGE):
             get_box_image()
 
-        used_loop = ""
         if not Config.get('skip_create_loop'):
             print('Adding logical volumes (block devices) in loopback device...')
-            used_loop = osd.create_loopback_devices(osds)
+            osd.create_scsi_devices(osds)
             print(f'Added {osds} logical volumes in a loopback device')
-        loop_device_arg = ""
-        if used_loop:
-            loop_device_arg = f'--device {used_loop} -v /dev/vg1:/dev/vg1'
-            for o in range(osds):
-                loop_device_arg += f' --device /dev/dm-{o}'
 
             
 
         print('Starting containers')
+        run_shell_command('./start_seed.sh')
+        run_shell_command('./start_hosts.sh')
 
-        dcflags = '-f docker-compose.yml'
-        if not os.path.exists('/sys/fs/cgroup/cgroup.controllers'):
-            dcflags += ' -f docker-compose.cgroup1.yml'
-        run_shell_command(f'docker-compose up --scale hosts={hosts} -d')
         ip = run_dc_shell_command('hostname -i', 1, 'seed')
         assert ip != '127.0.0.1'
 

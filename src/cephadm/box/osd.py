@@ -16,6 +16,9 @@ from util import (
 )
 
 
+DEVICES_FILE="./devices.json"
+
+
 def create_loopback_devices(osds: int) -> Dict:
     assert osds
     cleanup()
@@ -47,6 +50,25 @@ def create_loopback_device(img_name, size_gb=5):
     return loop_dev
 
 
+def create_scsi_devices(count, size_gb=6):
+    cleanup()
+    size_mb = size_gb * 1024
+    run_shell_command(
+        f'sudo modprobe scsi_debug add_host={count} dev_size_mb={size_mb}')
+    devs = run_shell_command("lsscsi | grep scsi_debug | awk '{print $6}'")\
+        .splitlines()
+    run_shell_command(f"sudo chmod 777 {' '.join(devs)}")
+    with open(DEVICES_FILE, 'w') as dev_file:
+        dev_file.write(json.dumps(devs))
+    return devs
+
+
+def load_scsi_devices():
+    with open(DEVICES_FILE) as dev_file:
+        devs = json.loads(dev_file.read())
+    return devs
+
+
 @ensure_inside_container
 def deploy_osd(data: str, hostname: str) -> bool:
     out = run_cephadm_shell_command(f'ceph orch daemon add osd "{hostname}:{data}"')
@@ -63,6 +85,8 @@ def load_loop_devs():
 
 
 def cleanup() -> None:
+    run_shell_command('sudo rmmod scsi_debug', expect_error=True)
+    return
     loop_img_dir = Config.get('loop_img_dir')
     loop_devs = load_loop_devs()
     for osd in loop_devs.values():
@@ -77,16 +101,16 @@ def deploy_osds(count):
     if inside_container():
         print('xd')
         return
-    loop_devs = load_loop_devs()
+    devs = load_scsi_devices()
     hosts = get_orch_hosts()
     host_index = 0
     v = '-v' if Config.get('verbose') else ''
-    for osd in loop_devs.values():
+    for dev in devs:
         deployed = False
         while not deployed:
             hostname = hosts[host_index]['hostname']
             deployed = run_dc_shell_command(
-                f'/cephadm/box/box.py {v} osd deploy --data {osd["device"]} --hostname {hostname}',
+                f'/cephadm/box/box.py {v} osd deploy --data {dev} --hostname {hostname}',
                 1,
                 'seed'
             )
@@ -128,5 +152,5 @@ class Osd(Target):
     @ensure_outside_container
     def create_loop(self):
         osds = Config.get('osds')
-        create_loopback_devices(int(osds))
+        create_scsi_devices(int(osds))
         print('Successfully added logical volumes in loopback devices')
