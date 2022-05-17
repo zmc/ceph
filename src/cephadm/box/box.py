@@ -63,7 +63,7 @@ def get_ceph_image():
     print('Getting ceph image')
     run_shell_command('podman pull quay.ceph.io/ceph-ci/ceph:master')
     # update
-    run_shell_command(f'podman build -t {CEPH_IMAGE} docker/ceph')
+    run_shell_command(f'podman build -t {CEPH_IMAGE} -f docker/ceph/Dockerfile ../..')
     if not os.path.exists('docker/ceph/image'):
         os.mkdir('docker/ceph/image')
 
