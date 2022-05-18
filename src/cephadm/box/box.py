@@ -19,10 +19,10 @@ from util import (
     run_shell_command,
     run_shell_commands,
     colored,
-    Colors
+    Colors,
+    CEPH_IMAGE,
 )
 
-CEPH_IMAGE = 'quay.ceph.io/ceph-ci/ceph:main'
 BOX_IMAGE = 'cephadm-box:latest'
 
 # NOTE: this image tar is a trickeroo so cephadm won't pull the image everytime
@@ -61,7 +61,7 @@ def image_exists(image_name: str):
 
 def get_ceph_image():
     print('Getting ceph image')
-    run_shell_command(f'podman pull {CEPH_IMAGE}')
+    run_shell_command('podman pull quay.ceph.io/ceph-ci/ceph:master')
     # update
     run_shell_command(f'podman build -t {CEPH_IMAGE} docker/ceph')
     if not os.path.exists('docker/ceph/image'):
@@ -141,9 +141,9 @@ class Cluster(Target):
         # cephadm guid error because it sometimes tries to use quay.ceph.io/ceph-ci/ceph:<none>
         # instead of main branch's tag
         run_shell_command('export CEPH_SOURCE_FOLDER=/ceph')
-        run_shell_command('export CEPHADM_IMAGE=quay.ceph.io/ceph-ci/ceph:main')
+        run_shell_command(f'export CEPHADM_IMAGE={CEPH_IMAGE}')
         run_shell_command(
-            'echo "export CEPHADM_IMAGE=quay.ceph.io/ceph-ci/ceph:main" >> ~/.bashrc'
+            f'echo "export CEPHADM_IMAGE={CEPH_IMAGE}" >> ~/.bashrc'
         )
         run_shell_command(
             'echo "export CEPH_VOLUME_ALLOW_LOOP_DEVICES=1" >> ~/.bashrc'
@@ -191,6 +191,7 @@ class Cluster(Target):
         print('Running cephadm bootstrap...')
         run_shell_command(cephadm_bootstrap_command)
         print('Cephadm bootstrap complete')
+        run_cephadm_shell_command(f'ceph config set global container_image {CEPH_IMAGE}')
 
         run_shell_command('sudo vgchange --refresh')
         run_shell_command('cephadm ls')

@@ -4,6 +4,8 @@ import subprocess
 import sys
 from typing import Any, Callable, Dict
 
+CEPH_IMAGE = 'quay.ceph.io/ceph-ci/ceph:box'
+
 class Colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -141,9 +143,9 @@ def run_cephadm_shell_command(command: str, expect_error=False) -> str:
     config = Config.get('config')
     keyring = Config.get('keyring')
 
-    with_cephadm_image = 'CEPHADM_IMAGE=quay.ceph.io/ceph-ci/ceph:master'
+    with_cephadm_image = f'CEPHADM_IMAGE={CEPH_IMAGE}'
     out = run_shell_command(
-        f'{with_cephadm_image} cephadm --verbose shell --config {config} --keyring {keyring} -- {command}',
+        f'{with_cephadm_image} cephadm --verbose shell --env CEPHADM_IMAGE={CEPH_IMAGE} --config {config} --keyring {keyring} -- {command}',
         expect_error,
     )
     return out
