@@ -37,7 +37,7 @@ def remove_ceph_image_tar():
         os.remove(CEPH_IMAGE_TAR)
 
 
-def cleanup_box() -> None:
+def cleanup_box(remove_image=True) -> None:
     osd.cleanup()
     init_containers.InitContainers.stop()
     remove_ceph_image_tar()
@@ -292,7 +292,7 @@ class Cluster(Target):
 
     @ensure_outside_container
     def down(self):
-        cleanup_box()
+        cleanup_box(remove_image=False)
         print('Successfully killed all boxes')
 
     @ensure_outside_container
