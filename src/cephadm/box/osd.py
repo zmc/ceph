@@ -42,6 +42,7 @@ def create_loopback_device(img_name, size_gb=5):
     if not os.path.exists(loop_dev):
         dev_minor = re.match(r'\/dev\/[^\d]+(\d+)', loop_dev).groups()[0]
         run_shell_command(f'sudo mknod -m777 {loop_dev} b 7 {dev_minor}')
+        run_shell_command(f'sudo chown {os.getuid()}:{os.getgid()} {loop_dev}')
     if os.path.ismount(loop_dev):
         os.umount(loop_dev)
     run_shell_command(f'sudo losetup {loop_dev} {loop_img}')
