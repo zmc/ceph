@@ -137,9 +137,10 @@ def download_cephadm(ctx, config, ref):
     try:
         yield
     finally:
-        _rm_cluster(ctx, cluster_name)
-        if config.get('cephadm_mode') == 'root':
-            _rm_cephadm(ctx)
+        if not config.get("skip_teardown"):
+            _rm_cluster(ctx, cluster_name)
+            if config.get('cephadm_mode') == 'root':
+                _rm_cephadm(ctx)
 
 
 def _fetch_cephadm_from_rpm(ctx):
@@ -616,46 +617,47 @@ def ceph_bootstrap(ctx, config):
         yield
 
     finally:
-        log.info('Cleaning up testdir ceph.* files...')
-        ctx.cluster.run(args=[
-            'rm', '-f',
-            '{}/seed.{}.conf'.format(testdir, cluster_name),
-            '{}/{}.pub'.format(testdir, cluster_name),
-        ])
+        if not config.get("skip_teardown"):
+            log.info('Cleaning up testdir ceph.* files...')
+            ctx.cluster.run(args=[
+                'rm', '-f',
+                '{}/seed.{}.conf'.format(testdir, cluster_name),
+                '{}/{}.pub'.format(testdir, cluster_name),
+            ])
 
-        log.info('Stopping all daemons...')
+            log.info('Stopping all daemons...')
 
-        # this doesn't block until they are all stopped...
-        #ctx.cluster.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
+            # this doesn't block until they are all stopped...
+            #ctx.cluster.run(args=['sudo', 'systemctl', 'stop', 'ceph.target'])
 
-        # stop the daemons we know
-        for role in ctx.daemons.resolve_role_list(None, CEPH_ROLE_TYPES, True):
-            cluster, type_, id_ = teuthology.split_role(role)
-            try:
-                ctx.daemons.get_daemon(type_, id_, cluster).stop()
-            except Exception:
-                log.exception(f'Failed to stop "{role}"')
-                raise
+            # stop the daemons we know
+            for role in ctx.daemons.resolve_role_list(None, CEPH_ROLE_TYPES, True):
+                cluster, type_, id_ = teuthology.split_role(role)
+                try:
+                    ctx.daemons.get_daemon(type_, id_, cluster).stop()
+                except Exception:
+                    log.exception(f'Failed to stop "{role}"')
+                    raise
 
-        # tear down anything left (but leave the logs behind)
-        ctx.cluster.run(
-            args=[
-                'sudo',
-                ctx.cephadm,
-                'rm-cluster',
-                '--fsid', fsid,
-                '--force',
-                '--keep-logs',
-            ],
-            check_status=False,  # may fail if upgrading from old cephadm
-        )
+            # tear down anything left (but leave the logs behind)
+            ctx.cluster.run(
+                args=[
+                    'sudo',
+                    ctx.cephadm,
+                    'rm-cluster',
+                    '--fsid', fsid,
+                    '--force',
+                    '--keep-logs',
+                ],
+                check_status=False,  # may fail if upgrading from old cephadm
+            )
 
-        # clean up /etc/ceph
-        ctx.cluster.run(args=[
-            'sudo', 'rm', '-f',
-            '/etc/ceph/{}.conf'.format(cluster_name),
-            '/etc/ceph/{}.client.admin.keyring'.format(cluster_name),
-        ])
+            # clean up /etc/ceph
+            ctx.cluster.run(args=[
+                'sudo', 'rm', '-f',
+                '/etc/ceph/{}.conf'.format(cluster_name),
+                '/etc/ceph/{}.client.admin.keyring'.format(cluster_name),
+            ])
 
 
 @contextlib.contextmanager
@@ -1415,11 +1417,12 @@ def distribute_config_and_admin_keyring(ctx, config):
     try:
         yield
     finally:
-        ctx.cluster.run(args=[
-            'sudo', 'rm', '-f',
-            '/etc/ceph/{}.conf'.format(cluster_name),
-            '/etc/ceph/{}.client.admin.keyring'.format(cluster_name),
-        ])
+        if not config.get("skip_teardown") is True:
+            ctx.cluster.run(args=[
+                'sudo', 'rm', '-f',
+                '/etc/ceph/{}.conf'.format(cluster_name),
+                '/etc/ceph/{}.client.admin.keyring'.format(cluster_name),
+            ])
 
 
 @contextlib.contextmanager
