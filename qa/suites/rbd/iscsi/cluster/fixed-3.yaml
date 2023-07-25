@@ -3,17 +3,12 @@ roles:
   - mon.a
   - mgr.x
   - osd.0
-  - osd.1
   - client.0
   - ceph.iscsi.iscsi.a
 - - mon.b
-  - osd.2
-  - osd.3
-  - osd.4
+  - osd.1
   - client.1
 - - mon.c
-  - osd.5
-  - osd.6
-  - osd.7
+  - osd.2
   - client.2
   - ceph.iscsi.iscsi.b
