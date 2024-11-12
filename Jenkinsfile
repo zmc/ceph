@@ -3,7 +3,6 @@ pipeline {
   stages {
     stage("setup") {
       steps {
-        echo $params
         script {
           build(
             job: "ceph-dev-new-setup",
