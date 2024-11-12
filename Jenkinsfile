@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  environment {
+      SHAMAN_API_KEY = credentials('shaman-api-key')
+  }
   stages {
     stage("setup") {
       steps {
