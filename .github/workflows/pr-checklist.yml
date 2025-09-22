@@ -6,6 +6,7 @@ on:
       - edited
       - opened
       - reopened
+  workflow_dispatch:
 jobs:
   pr_checklist:
     runs-on: ubuntu-latest
@@ -16,4 +17,4 @@ jobs:
         shell: bash
       - name: Action
         id: checklist
-        uses: ceph/ceph-pr-checklist-action@b15031f5d7e2a825b7e5b2fd4f76ae3a9e8aaaf3
+        uses: ceph/ceph-pr-checklist-action@68152d077947078df55df396fd21a9bb503df414
